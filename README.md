@@ -13,13 +13,19 @@ namn eller elevlistor laddas någonsin upp till det här repot.
 2. Tillägg (Extensions) > Apps Script.
 3. Klistra in innehållet i [`Namnskyltar.gs`](./Namnskyltar.gs) i `Code.gs`.
 4. Spara och ladda om Sheet-fliken i webbläsaren.
-5. Sheetet har en flik per klass/grupp – klicka på fliken för den klass du
+5. **Namnskyltar > Ange mall och mapp...** – klistra in länken till
+   Presentations-mallen, och (valfritt) länken till mappen där nya
+   namnskylt-presentationer ska sparas. Görs en gång per Sheet-fil; sparas
+   i dokumentets egna inställningar, inte i koden. En kollega som får en
+   kopia av Sheetet gör bara det här steget själv – ingen kodändring behövs.
+6. Sheetet har en flik per klass/grupp – klicka på fliken för den klass du
    vill skapa namnskyltar för (scriptet läser den flik som är öppen/aktiv).
-6. Använd den nya menyn **Namnskyltar > Skapa namnskyltar**.
+7. Använd menyn **Namnskyltar > Skapa namnskyltar**.
 
-Standardinställningarna (kolumn A, inga rubrikrader, aktiv flik) matchar
-strukturen på klasslistorna. Om du någon gång ändrar strukturen kan du
-justera konstanterna i `CONFIG`-blocket överst i scriptet.
+Standardinställningarna för kolumn/rubrikrader (kolumn A, inga rubrikrader,
+aktiv flik) matchar strukturen på klasslistorna. Om du någon gång ändrar
+den strukturen kan du justera konstanterna i `CONFIG`-blocket överst i
+scriptet.
 
 Scriptet skapar då en ny kopia av mall-presentationen (mallen i sig ändras
 aldrig) med en namnskylt-bild per namn i listan, och visar en länk till den

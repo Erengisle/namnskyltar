@@ -5,25 +5,22 @@
  * 1. Öppna Google Sheet-filen med namnlistan.
  * 2. Tillägg (Extensions) > Apps Script.
  * 3. Klistra in hela detta innehåll i Code.gs (ersätt det som finns där).
- * 4. Justera konstanterna i CONFIG-blocket nedan vid behov.
+ * 4. Justera konstanterna i CONFIG-blocket nedan vid behov (mall och mapp
+ *    ställs INTE in här – det görs via menyn, se nedan).
  * 5. Spara (Ctrl/Cmd+S) och stäng Apps Script-fliken.
  * 6. Ladda om Sheet-fliken i webbläsaren. En ny meny "Namnskyltar" dyker upp.
- * 7. Namnskyltar > Skapa namnskyltar.
+ * 7. Namnskyltar > Ange mall och mapp... – klistra in länken till
+ *    Presentations-mallen och (valfritt) länken till mappen där nya
+ *    namnskylt-presentationer ska sparas. Sparas per Sheet-fil, så en
+ *    kollega som får en kopia av detta Sheet gör bara detta steg själv –
+ *    ingen kodändring behövs.
+ * 8. Namnskyltar > Skapa namnskyltar.
  *
  * Första gången du kör scriptet ber Google om behörighet (det är ditt eget
  * Google-konto som kör det, ingenting skickas till någon extern tjänst).
  */
 
 // ----------------- CONFIG -----------------
-
-// ID för Google Presentations-mallen "Mall, namnskylt".
-// Hittas i adressfältet när mallen är öppen:
-// https://docs.google.com/presentation/d/DETTA_ÄR_ID:T/edit
-var TEMPLATE_PRESENTATION_ID = '1M1emr26O2jk7SZX5oU0Ih54DGPTZe7yWWfYM4YBfBK8';
-
-// Mapp i Drive dit nya namnskylt-presentationer ska sparas.
-// Lämna tom sträng ('') för att spara i samma mapp som mallen ligger i.
-var DEST_FOLDER_ID = '11gBU3E2qK6csBEp7VtWcq257SjxzttZq';
 
 // Namnet på fliken i Sheet:et som listan står i. Tom sträng = den flik
 // som är aktiv (öppen) när du kör scriptet.
@@ -43,11 +40,79 @@ function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('Namnskyltar')
     .addItem('Skapa namnskyltar', 'skapaNamnskyltar')
+    .addItem('Ange mall och mapp...', 'angeMallOchMapp')
     .addToUi();
+}
+
+// Frågar efter länkarna till mall-presentationen och destinationsmappen,
+// och sparar dem (som ID:n) i det här Sheet-dokumentets egna inställningar.
+// Returnerar true om båda sparades, false om dialogen avbröts.
+function angeMallOchMapp() {
+  var ui = SpreadsheetApp.getUi();
+  var props = PropertiesService.getDocumentProperties();
+
+  var templateResp = ui.prompt(
+    'Mall-presentation',
+    'Klistra in länken till Google Presentations-mallen (t.ex. "Mall, namnskylt"):',
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (templateResp.getSelectedButton() !== ui.Button.OK) return false;
+
+  var templateId = extractDriveId(templateResp.getResponseText());
+  if (!templateId) {
+    ui.alert('Kunde inte tolka länken till mallen. Kontrollera att du klistrat in hela URL:en och försök igen.');
+    return false;
+  }
+
+  var folderResp = ui.prompt(
+    'Mapp för nya namnskyltar',
+    'Klistra in länken till mappen där nya namnskylt-presentationer ska sparas.\n' +
+    'Lämna tomt för att spara i samma mapp som mallen ligger i.',
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (folderResp.getSelectedButton() !== ui.Button.OK) return false;
+
+  var folderText = folderResp.getResponseText().trim();
+  var folderId = '';
+  if (folderText) {
+    folderId = extractDriveId(folderText);
+    if (!folderId) {
+      ui.alert('Kunde inte tolka länken till mappen. Kontrollera att du klistrat in hela URL:en och försök igen.');
+      return false;
+    }
+  }
+
+  props.setProperty('TEMPLATE_ID', templateId);
+  props.setProperty('DEST_FOLDER_ID', folderId);
+  ui.alert('Sparat! Du kan nu köra "Skapa namnskyltar".');
+  return true;
+}
+
+// Plockar ut Drive-filens/mappens ID ur en Google Drive/Docs/Slides-URL.
+// Fungerar även om man klistrar in ett bart ID direkt.
+function extractDriveId(input) {
+  var s = String(input || '').trim();
+  var m = s.match(/\/d\/([a-zA-Z0-9_-]{10,})/) || // .../d/<ID>/... (dokument/mall/sheet)
+    s.match(/\/folders\/([a-zA-Z0-9_-]{10,})/) || // .../folders/<ID>
+    s.match(/[?&]id=([a-zA-Z0-9_-]{10,})/); // ...?id=<ID>
+  if (m) return m[1];
+  if (/^[a-zA-Z0-9_-]{10,}$/.test(s)) return s; // redan ett bart ID
+  return null;
 }
 
 function skapaNamnskyltar() {
   var ui = SpreadsheetApp.getUi();
+  var props = PropertiesService.getDocumentProperties();
+  var templateId = props.getProperty('TEMPLATE_ID');
+
+  if (!templateId) {
+    ui.alert('Du behöver ange mall och mapp först.');
+    if (!angeMallOchMapp()) return;
+    templateId = props.getProperty('TEMPLATE_ID');
+    if (!templateId) return;
+  }
+  var destFolderId = props.getProperty('DEST_FOLDER_ID'); // kan vara '' (samma mapp som mallen)
+
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = SHEET_NAME ? ss.getSheetByName(SHEET_NAME) : ss.getActiveSheet();
 
@@ -77,9 +142,9 @@ function skapaNamnskyltar() {
     outputName = 'Namnskyltar ' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
   }
 
-  var templateFile = DriveApp.getFileById(TEMPLATE_PRESENTATION_ID);
-  var destFolder = DEST_FOLDER_ID
-    ? DriveApp.getFolderById(DEST_FOLDER_ID)
+  var templateFile = DriveApp.getFileById(templateId);
+  var destFolder = destFolderId
+    ? DriveApp.getFolderById(destFolderId)
     : templateFile.getParents().next();
 
   var copyFile = templateFile.makeCopy(outputName, destFolder);

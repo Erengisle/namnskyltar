@@ -35,7 +35,7 @@ var SHEET_NAME = '';
 var NAME_COLUMN = 1;
 
 // Hur många rader överst som är rubrikrader och ska hoppas över.
-var HEADER_ROWS = 1;
+var HEADER_ROWS = 0;
 
 // -------------------------------------------
 

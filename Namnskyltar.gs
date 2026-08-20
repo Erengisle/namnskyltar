@@ -203,9 +203,13 @@ function extractFirstName(raw) {
 }
 
 function setNameOnSlide(slide, name) {
+  // getShapes() ger bara textbärande former (linjer/bilder har egna typer
+  // och räknas inte hit) – på namnskylts-mallen är det de två textrutorna
+  // med namnet, så det är säkert att alltid skriva in namnet i dem, oavsett
+  // om de redan har text eller är tomma.
   slide.getShapes().forEach(function (shape) {
     var textRange = shape.getText();
-    if (textRange && textRange.asString().trim() !== '') {
+    if (textRange) {
       textRange.setText(name);
     }
   });
